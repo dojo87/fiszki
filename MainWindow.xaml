@@ -53,6 +53,10 @@
                        VerticalAlignment="Center" Foreground="#64748B"
                        Text="Weighted practice" />
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button x:Name="NewSessionButton" Content="New session"
+                        Click="NewSessionButton_Click" Background="#2457A7"
+                        Foreground="White" Margin="0,0,10,0"
+                        Visibility="Collapsed" />
                 <Button x:Name="CheckButton" Content="Check answer"
                         Click="CheckButton_Click" Background="#2457A7"
                         Foreground="White" IsDefault="True" />

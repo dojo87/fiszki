@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.IO;
+using System.Media;
 using System.Text;
+using System.Text.Json;
 using Microsoft.Win32;
 using System.Windows;
 using System.Windows.Controls;
@@ -13,11 +15,15 @@ public partial class MainWindow : Window
 {
     private readonly Random _random = new();
     private string _dataPath = string.Empty;
+    private int _sessionQuestionCount;
     private List<string> _headers = new();
     private List<VerbEntry> _verbs = new();
+    private List<SessionQuestion> _sessionQuestions = new();
     private List<TextBox> _inputs = new();
     private VerbEntry? _currentVerb;
     private int _promptColumn;
+    private int _questionIndex;
+    private int _correctAnswers;
 
     public MainWindow()
     {
@@ -25,6 +31,7 @@ public partial class MainWindow : Window
 
         try
         {
+            _sessionQuestionCount = ReadSessionQuestionCount();
             _dataPath = ResolveDataPath(Environment.GetCommandLineArgs().Skip(1));
             ApplyData(_dataPath, ReadVerbs(_dataPath));
             BuildForm();
@@ -87,6 +94,18 @@ public partial class MainWindow : Window
         }
 
         return defaultPath;
+    }
+
+    private static int ReadSessionQuestionCount()
+    {
+        var settingsPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+        using var settings = JsonDocument.Parse(File.ReadAllText(settingsPath, Encoding.UTF8));
+        if (!settings.RootElement.TryGetProperty("SessionQuestions", out var sessionQuestions)
+            || !sessionQuestions.TryGetInt32(out var questionCount)
+            || questionCount <= 0)
+            throw new InvalidDataException("appsettings.json must contain a positive integer SessionQuestions value.");
+
+        return questionCount;
     }
 
     private static string GetSettingsDirectory() =>
@@ -172,11 +191,46 @@ public partial class MainWindow : Window
 
     private void ApplyData(string dataPath, VerbData data)
     {
+        var sessionQuestions = CreateSessionQuestions(data);
         _dataPath = Path.GetFullPath(dataPath);
         _headers = data.Headers;
         _verbs = data.Entries;
+        _sessionQuestions = sessionQuestions;
+        _questionIndex = 0;
+        _correctAnswers = 0;
+        NewSessionButton.Visibility = Visibility.Collapsed;
         SourceText.Text = Path.GetFileName(_dataPath);
         SourceText.ToolTip = _dataPath;
+    }
+
+    private List<SessionQuestion> CreateSessionQuestions(VerbData data)
+    {
+        if (_sessionQuestionCount > data.Entries.Count)
+            throw new InvalidDataException(
+                $"The CSV must contain at least {_sessionQuestionCount} entries for this session.");
+
+        var candidates = data.Entries.ToList();
+        var questions = new List<SessionQuestion>(_sessionQuestionCount);
+        for (var question = 0; question < _sessionQuestionCount; question++)
+        {
+            var selection = _random.NextDouble() * candidates.Sum(entry => entry.Weight);
+            var selectedIndex = candidates.Count - 1;
+            for (var index = 0; index < candidates.Count; index++)
+            {
+                selection -= candidates[index].Weight;
+                if (selection < 0)
+                {
+                    selectedIndex = index;
+                    break;
+                }
+            }
+
+            var selectedVerb = candidates[selectedIndex];
+            candidates.RemoveAt(selectedIndex);
+            questions.Add(new SessionQuestion(selectedVerb, _random.Next(data.Headers.Count - 1)));
+        }
+
+        return questions;
     }
 
     private void BuildForm()
@@ -201,19 +255,9 @@ public partial class MainWindow : Window
 
     private void ShowNextQuestion()
     {
-        var selection = _random.NextDouble() * _verbs.Sum(verb => verb.Weight);
-        _currentVerb = _verbs[^1];
-        foreach (var verb in _verbs)
-        {
-            selection -= verb.Weight;
-            if (selection < 0)
-            {
-                _currentVerb = verb;
-                break;
-            }
-        }
-
-        _promptColumn = _random.Next(_headers.Count - 1);
+        var question = _sessionQuestions[_questionIndex];
+        _currentVerb = question.Verb;
+        _promptColumn = question.PromptColumn;
         for (var column = 0; column < _inputs.Count; column++)
         {
             var isPrompt = column == _promptColumn;
@@ -233,7 +277,7 @@ public partial class MainWindow : Window
         FeedbackBorder.Visibility = Visibility.Collapsed;
         CheckButton.IsEnabled = true;
         NextButton.IsEnabled = false;
-        ProgressText.Text = $"Weighted practice · {_verbs.Count} entries";
+        ProgressText.Text = $"Question {_questionIndex + 1}/{_sessionQuestions.Count} · Score {_correctAnswers}";
         _inputs[(_promptColumn + 1) % _inputs.Count].Focus();
     }
 
@@ -268,6 +312,7 @@ public partial class MainWindow : Window
 
         if (incorrectColumns.Count == 0)
         {
+            _correctAnswers++;
             ShowFeedback("Correct! All fields are right.", isCorrect: true);
         }
         else
@@ -279,9 +324,45 @@ public partial class MainWindow : Window
         }
 
         CheckButton.IsEnabled = false;
-        NextButton.IsEnabled = true;
         foreach (var input in _inputs)
             input.IsEnabled = false;
+
+        if (_questionIndex == _sessionQuestions.Count - 1)
+        {
+            ShowSessionResult();
+            return;
+        }
+
+        NextButton.IsEnabled = true;
+    }
+
+    private void ShowSessionResult()
+    {
+        var percentage = (double)_correctAnswers / _sessionQuestions.Count * 100;
+        var (label, color, background, sound) = percentage switch
+        {
+            < 40 => ("Keep practicing", Color.FromRgb(185, 28, 28), Color.FromRgb(254, 226, 226),
+                SystemSounds.Hand),
+            < 60 => ("Getting there", Color.FromRgb(194, 65, 12), Color.FromRgb(255, 237, 213),
+                SystemSounds.Exclamation),
+            < 75 => ("Good effort", Color.FromRgb(161, 98, 7), Color.FromRgb(254, 249, 195),
+                SystemSounds.Beep),
+            < 90 => ("Great work", Color.FromRgb(21, 128, 61), Color.FromRgb(220, 252, 231),
+                SystemSounds.Question),
+            _ => ("Excellent!", Color.FromRgb(22, 101, 52), Color.FromRgb(187, 247, 208),
+                SystemSounds.Asterisk)
+        };
+
+        FeedbackText.Text =
+            $"Session complete: {_correctAnswers}/{_sessionQuestions.Count} correct ({percentage:0}%). {label}";
+        FeedbackText.Foreground = new SolidColorBrush(color);
+        FeedbackBorder.Background = new SolidColorBrush(background);
+        FeedbackBorder.Visibility = Visibility.Visible;
+        ProgressText.Text = $"Session complete · {_correctAnswers}/{_sessionQuestions.Count} correct";
+        CheckButton.IsEnabled = false;
+        NextButton.IsEnabled = false;
+        NewSessionButton.Visibility = Visibility.Visible;
+        sound.Play();
     }
 
     private void ShowFeedback(string message, bool isCorrect)
@@ -313,7 +394,20 @@ public partial class MainWindow : Window
         File.Move(temporaryPath, _dataPath, overwrite: true);
     }
 
-    private void NextButton_Click(object sender, RoutedEventArgs e) => ShowNextQuestion();
+    private void NextButton_Click(object sender, RoutedEventArgs e)
+    {
+        _questionIndex++;
+        ShowNextQuestion();
+    }
+
+    private void NewSessionButton_Click(object sender, RoutedEventArgs e)
+    {
+        _sessionQuestions = CreateSessionQuestions(new VerbData(_headers, _verbs));
+        _questionIndex = 0;
+        _correctAnswers = 0;
+        NewSessionButton.Visibility = Visibility.Collapsed;
+        ShowNextQuestion();
+    }
 
     private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
     {
@@ -345,8 +439,8 @@ public partial class MainWindow : Window
         try
         {
             var data = ReadVerbs(dialog.FileName);
-            SaveLastLoadedPath(dialog.FileName);
             ApplyData(dialog.FileName, data);
+            SaveLastLoadedPath(dialog.FileName);
             BuildForm();
             ShowNextQuestion();
         }
@@ -412,4 +506,5 @@ public partial class MainWindow : Window
     }
 
     private sealed record VerbData(List<string> Headers, List<VerbEntry> Entries);
+    private sealed record SessionQuestion(VerbEntry Verb, int PromptColumn);
 }
