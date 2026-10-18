@@ -127,13 +127,20 @@ public partial class MainWindow : Window
             throw new InvalidDataException("The CSV must contain a header and at least one verb.");
 
         var headers = ParseCsvLine(lines[0]);
-        if (headers.Count < 2 || headers.Any(string.IsNullOrWhiteSpace))
-            throw new InvalidDataException("The CSV needs at least one data column and a final weight column.");
-        if (!headers[^1].Trim().Equals("weight", StringComparison.OrdinalIgnoreCase))
+        if (headers.Count == 0 || headers.Any(string.IsNullOrWhiteSpace))
+            throw new InvalidDataException("The CSV needs at least one data column.");
+        var hasWeightColumn = headers[^1].Trim().Equals("weight", StringComparison.OrdinalIgnoreCase);
+        if (headers.Any(header => header.Trim().Equals("weight", StringComparison.OrdinalIgnoreCase))
+            && !hasWeightColumn)
             throw new InvalidDataException("The last CSV column must be named 'weight'.");
-        if (headers.Take(headers.Count - 1).Distinct(StringComparer.OrdinalIgnoreCase).Count()
-            != headers.Count - 1)
+        if (hasWeightColumn && headers.Count < 2)
+            throw new InvalidDataException("The CSV needs at least one data column and a final weight column.");
+
+        var dataColumnCount = hasWeightColumn ? headers.Count - 1 : headers.Count;
+        if (headers.Take(dataColumnCount).Distinct(StringComparer.OrdinalIgnoreCase).Count() != dataColumnCount)
             throw new InvalidDataException("Data column names must be unique.");
+        if (!hasWeightColumn)
+            headers.Add("weight");
 
         var entries = new List<VerbEntry>();
         for (var lineNumber = 1; lineNumber < lines.Length; lineNumber++)
@@ -142,15 +149,18 @@ public partial class MainWindow : Window
                 continue;
 
             var fields = ParseCsvLine(lines[lineNumber]);
-            if (fields.Count != headers.Count)
-                throw new InvalidDataException($"CSV line {lineNumber + 1} must have {headers.Count} columns.");
-            if (!double.TryParse(fields[^1], NumberStyles.Float, CultureInfo.InvariantCulture, out var weight)
-                || !double.IsFinite(weight) || weight <= 0)
+            var expectedColumnCount = dataColumnCount + (hasWeightColumn ? 1 : 0);
+            if (fields.Count != expectedColumnCount)
+                throw new InvalidDataException($"CSV line {lineNumber + 1} must have {expectedColumnCount} columns.");
+            var weight = 1.0;
+            if (hasWeightColumn
+                && (!double.TryParse(fields[^1], NumberStyles.Float, CultureInfo.InvariantCulture, out weight)
+                    || !double.IsFinite(weight) || weight <= 0))
                 throw new InvalidDataException($"CSV line {lineNumber + 1} has an invalid weight.");
-            if (fields.Take(fields.Count - 1).Any(string.IsNullOrWhiteSpace))
+            if (fields.Take(dataColumnCount).Any(string.IsNullOrWhiteSpace))
                 throw new InvalidDataException($"CSV line {lineNumber + 1} has an empty data field.");
 
-            entries.Add(new VerbEntry(fields.Take(fields.Count - 1).ToArray(), weight));
+            entries.Add(new VerbEntry(fields.Take(dataColumnCount).ToArray(), weight));
         }
 
         if (entries.Count == 0)

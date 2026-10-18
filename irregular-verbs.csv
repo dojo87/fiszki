@@ -1,9 +1,84 @@
-translation,present,past simple,past participle,weight
-być,be,was/were,been,1
-iść,go,went,gone,1
-widzieć,see,saw,seen,1
-jeść,eat,ate,eaten,1
-pić,drink,drank,drunk,1
-brać,take,took,taken,1
-mieć,have,had,had,1
-robić,do,did,done,1.5
+Infinitive,Past simple,Past participle,Translation,weight
+be,was/were,been,być,1
+beat,beat,beaten,bić,1
+become,became,become,stawać się,1
+begin,began,begun,zaczynać,1
+break,broke,broken,łamać/psuć,1
+bring,brought,brought,przynosić,1
+build,built,built,budować,1
+burn,burned,burned,palić,1
+buy,bought,bought,kupować,1
+can,could,been able to,móc/potrafić,1
+catch,caught,caught,łapać,1
+choose,chose,chosen,wybierać,1
+come,came,come,przychodzić,1
+cost,cost,cost,kosztować,1
+cut,cut,cut,ciąć,1
+do,did,done,robić,1
+draw,drew,drawn,rysować,1
+dream,dreamed,dreamed,marzyć,1
+drink,drank,drunk,pić,1
+drive,drove,driven,prowadzić (samochód),1
+eat,ate,eaten,jeść,1
+fall,fell,fallen,spadać/upadać,1
+feed,fed,fed,karmić,1
+feel,felt,felt,czuć,1
+fight,fought,fought,walczyć,1
+find,found,found,znajdować,1
+fly,flew,flown,latać,1
+forget,forgot,forgotten,zapominać,1
+forgive,forgave,forgiven,przebaczać,1
+get,got,got,dostawać/otrzymywać,1
+give,gave,given,dawać,1
+go,went,gone,iść/jechać,1
+grow,grew,grown,rosnąć,1
+hang,hung,hung,wisieć,1
+have,had,had,mieć,1
+hear,heard,heard,słyszeć,1
+hide,hid,hidden,ukrywać,1
+hit,hit,hit,uderzać,1
+hold,held,held,trzymać,1
+hurt,hurt,hurt,ranić/boleć,1
+keep,kept,kept,trzymać/zachowywać,1
+know,knew,known,wiedzieć/znać,1
+learn,learned,learned,uczyć się,1
+leave,left,left,opuszczać/wyjeżdżać,1
+lend,lent,lent,pożyczać (komuś),1
+let,let,let,pozwalać,1
+lie,lay,lain,leżeć,1
+lose,lost,lost,tracić/przegrywać,1
+make,made,made,robić/tworzyć,1
+meet,met,met,spotykać/poznawać,1
+pay,paid,paid,płacić,1
+put,put,put,kłaść/stawiać,1
+read,read,read,czytać,1
+ride,rode,ridden,jeździć,1
+ring,rang,rung,dzwonić,1
+run,ran,run,biegać,1
+say,said,said,mówić/powiedzieć,1
+see,saw,seen,widzieć,1
+sell,sold,sold,sprzedawać,1
+send,sent,sent,wysyłać,1
+set,set,set,ustawiać,1
+shine,shone,shone,świecić,1
+show,showed,shown,pokazywać,1
+sing,sang,sung,śpiewać,1
+sink,sank,sunk,tonąć,1
+sit,sat,sat,siedzieć,1
+sleep,slept,slept,spać,1
+speak,spoke,spoken,mówić/rozmawiać,1
+spell,spelled,spelled,literować,1
+spend,spent,spent,wydawać (pieniądze)/spędzać (czas),1
+stand,stood,stood,stać,1
+steal,stole,stolen,kraść,1
+sweep,swept,swept,zamiatać,1
+swim,swam,swum,pływać,1
+take,took,taken,brać,1
+teach,taught,taught,uczyć (kogoś),1
+tell,told,told,mówić/opowiadać/powiedzieć (komuś),1
+think,thought,thought,myśleć,1
+understand,understood,understood,rozumieć,1
+wake,woke,woken,budzić się/budzić,1
+wear,wore,worn,nosić (ubranie),1
+win,won,won,wygrywać,1
+write,wrote,written,pisać,1
